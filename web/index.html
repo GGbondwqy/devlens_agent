@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevLens Agent · 研发协作多智能体控制台</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #e6edf3; --dim: #8b949e;
+    --green: #3fb950; --blue: #58a6ff; --yellow: #d29922; --red: #f85149; --magenta: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; padding: 24px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  header h1 { font-size: 20px; }
+  .badge { font-size: 12px; padding: 2px 10px; border: 1px solid var(--border); border-radius: 12px; color: var(--dim); }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .panel h2 { font-size: 14px; color: var(--dim); margin-bottom: 12px; font-weight: 600; letter-spacing: .05em; }
+  button.task {
+    display: block; width: 100%; text-align: left; margin-bottom: 10px;
+    background: #21262d; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px; cursor: pointer; font-size: 14px;
+  }
+  button.task:hover { border-color: var(--blue); }
+  button.task small { display: block; color: var(--dim); margin-top: 2px; }
+  #events { height: 380px; overflow-y: auto; font-family: Consolas, monospace; font-size: 12.5px; line-height: 1.7; }
+  .ev { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+  .ev .tag { display: inline-block; min-width: 120px; color: var(--dim); }
+  .ev.tool_called { color: var(--yellow); }
+  .ev.agent_thought { color: var(--green); }
+  .ev.node_entered { color: var(--blue); font-weight: 600; }
+  .ev.reflection { color: var(--magenta); font-weight: 600; }
+  .ev.task_failed { color: var(--red); }
+  #report { white-space: pre-wrap; font-size: 13.5px; line-height: 1.8; }
+  .meta { margin-top: 10px; color: var(--dim); font-size: 12.5px; }
+  .status-running { color: var(--yellow); } .status-finished { color: var(--green); } .status-error { color: var(--red); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔭 DevLens Agent</h1>
+  <span class="badge" id="provider">provider: ?</span>
+  <span class="badge">Issue 分析 · PR 评审 · CI 排障</span>
+</header>
+<div class="grid">
+  <div>
+    <div class="panel">
+      <h2>启动任务（内置靶场案例）</h2>
+      <button class="task" onclick="createTask('issue')">🐛 ISSUE-101 · 优惠券金额为负
+        <small>规划 → 检索代码/知识库 → 归因分析 → 质检</small></button>
+      <button class="task" onclick="createTask('pr')">🔍 PR-42 · 优惠券服务异常兜底
+        <small>读 diff → 读上下文 → 结构化评审 → 质检</small></button>
+      <button class="task" onclick="createTask('ci')">⚙️ JOB-88 · CI 流水线失败
+        <small>读日志 → 定位源码 → 失败归因 → 质检</small></button>
+      <div class="meta" id="taskMeta">点击左侧任务开始，事件流实时输出。</div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h2>执行事件流（SSE）</h2>
+      <div id="events"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>最终报告</h2>
+    <div id="report">（尚无报告）</div>
+  </div>
+</div>
+<script>
+const FIXTURES = { issue: "issues/ISSUE-101.json", pr: "prs/PR-42.json", ci: "ci/JOB-88.json" };
+const TAGS = { task_started:"▶ 任务开始", node_entered:"◆ 进入节点", node_exited:"✔ 节点完成",
+  agent_thought:"💭 Agent", tool_called:"🔧 工具调用", tool_result:"  ↳ 结果",
+  reflection:"↺ 反思打回", checkpoint_saved:"💾 检查点", task_finished:"■ 任务完成", task_failed:"✗ 任务失败" };
+
+fetch("/api/config").then(r => r.json()).then(c => {
+  document.getElementById("provider").textContent = "provider: " + c.provider;
+});
+
+function addEvent(ev) {
+  const box = document.getElementById("events");
+  const div = document.createElement("div");
+  div.className = "ev " + ev.type;
+  let msg = ev.message || "";
+  if (ev.type === "tool_result" && msg.length > 180) msg = msg.slice(0, 180) + " …";
+  div.innerHTML = `<span class="tag">${TAGS[ev.type] || ev.type}${ev.node ? " [" + ev.node + "]" : ""}</span> ` +
+    msg.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function createTask(scenario) {
+  document.getElementById("events").innerHTML = "";
+  document.getElementById("report").textContent = "（运行中…）";
+  document.getElementById("taskMeta").innerHTML = '<span class="status-running">● 运行中</span>';
+  const resp = await fetch("/api/tasks", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario, fixture: FIXTURES[scenario] })
+  });
+  const { task_id } = await resp.json();
+  const es = new EventSource(`/api/tasks/${task_id}/events`);
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    if (ev.type === "task_closed") {
+      es.close();
+      pollResult(task_id);
+      return;
+    }
+    addEvent(ev);
+    if (ev.type === "task_finished" || ev.type === "task_failed") pollResult(task_id);
+  };
+}
+
+async function pollResult(taskId) {
+  const r = await (await fetch(`/api/tasks/${taskId}/result`)).json();
+  document.getElementById("report").textContent = r.report || r.error || "（无报告）";
+  document.getElementById("taskMeta").innerHTML =
+    `<span class="status-${r.status}">● ${r.status}</span> · 证据 ${r.evidence.length} 条 · task_id=${taskId}`;
+}
+</script>
+</body>
+</html>

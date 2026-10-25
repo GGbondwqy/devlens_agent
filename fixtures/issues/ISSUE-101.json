@@ -1,0 +1,8 @@
+{
+  "id": "ISSUE-101",
+  "title": "使用百分比优惠券后订单金额变为负数",
+  "body": "用户反馈：下单使用 P30 券（减 30%）后，订单金额显示为负数。\n\n复现：\n>>> apply_discount(100.0, Coupon(code='P30', kind='percent', value=30))\n-2900.0\n\n预期：100 元使用减 30% 的券后应付 70.0 元。\n\n疑似与 apply_discount / coupon 金额计算有关，请排查折扣逻辑。",
+  "severity": "P1",
+  "repo": "fixtures/repo",
+  "labels": ["bug", "coupon"]
+}

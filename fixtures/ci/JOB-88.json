@@ -1,0 +1,9 @@
+{
+  "id": "JOB-88",
+  "pipeline": "order-service",
+  "status": "failed",
+  "log": "fixtures/logs/ci_JOB-88.log",
+  "commit": "a1b2c3d",
+  "branch": "main",
+  "repo": "fixtures/repo"
+}

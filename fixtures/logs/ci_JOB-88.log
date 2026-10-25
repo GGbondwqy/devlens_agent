@@ -1,0 +1,26 @@
+2026-10-24 09:12:01 [INFO] pipeline=order-service job=JOB-88 triggered by push main@a1b2c3d
+2026-10-24 09:12:02 [INFO] setting up python 3.12
+2026-10-24 09:12:03 [INFO] installing dependencies from requirements.txt ... done (4.2s)
+2026-10-24 09:12:04 [INFO] > python -m pytest tests/ -q
+2026-10-24 09:12:05 [INFO] ============================= test session starts =============================
+2026-10-24 09:12:05 [INFO] collected 3 items
+2026-10-24 09:12:05 [INFO]
+2026-10-24 09:12:05 [INFO] tests/test_discount.py::test_full_reduction PASSED
+2026-10-24 09:12:05 [INFO] tests/test_discount.py::test_percent_discount FAILED
+2026-10-24 09:12:05 [INFO] tests/test_discount.py::test_no_coupon PASSED
+2026-10-24 09:12:05 [INFO]
+2026-10-24 09:12:05 [INFO] =================================== FAILURES ===================================
+2026-10-24 09:12:05 [INFO] ______________________________ test_percent_discount ______________________________
+2026-10-24 09:12:05 [INFO]
+2026-10-24 09:12:05 [INFO]     def test_percent_discount():
+2026-10-24 09:12:05 [INFO]         coupon = Coupon(code="P30", kind="percent", value=30)
+2026-10-24 09:12:05 [INFO] >       assert apply_discount(100.0, coupon) == 70.0
+2026-10-24 09:12:05 [ERROR] E       assert -2900.0 == 70.0
+2026-10-24 09:12:05 [ERROR] E        +  where -2900.0 = apply_discount(100.0, Coupon(code='P30', kind='percent', value=30))
+2026-10-24 09:12:05 [INFO]
+2026-10-24 09:12:05 [INFO] tests/test_discount.py:14: AssertionError
+2026-10-24 09:12:05 [INFO] -------------------- Captured stdout call --------------------
+2026-10-24 09:12:06 [ERROR] traceback: File "app/utils/discount.py", line 18, in apply_discount
+2026-10-24 09:12:06 [ERROR]   return round(price * (1 - coupon.value), 2)
+2026-10-24 09:12:06 [INFO] ========================= 1 failed, 2 passed in 0.05s =========================
+2026-10-24 09:12:06 [ERROR] JOB-88 finished with status=failed (exit code 1)

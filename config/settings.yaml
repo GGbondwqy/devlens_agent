@@ -1,0 +1,42 @@
+# DevLens Agent 全局配置
+# 说明：provider 为 mock 时全流程离线可跑（用于框架演示与测试）；
+#       切换为 openai_compatible 并填好 api_key 后，同一套 Agent 循环即可接入真实模型。
+
+llm:
+  provider: mock            # mock | openai_compatible
+  openai_compatible:
+    base_url: https://api.deepseek.com/v1   # 任何 OpenAI 兼容端点均可
+    api_key: ""                              # 建议用环境变量 DELENS_API_KEY 覆盖
+    # 按角色路由模型（多模型网关）：不同角色可用不同模型
+    model_map:
+      default: deepseek-chat
+      planner: deepseek-chat
+      researcher: deepseek-chat
+      analyst: deepseek-chat
+      reviewer: deepseek-chat
+      troubleshooter: deepseek-chat
+      critic: deepseek-chat
+  temperature: 0.2
+
+context:
+  max_tokens: 8000          # 单次请求上下文预算（粗估）
+  keep_recent_messages: 8   # 裁剪时保留的最近消息条数
+
+sandbox:
+  command_whitelist:        # 允许 Agent 执行的命令前缀
+    - git
+    - python
+    - pytest
+  command_timeout: 30       # 秒
+  max_output_chars: 6000    # 工具输出截断阈值（ACI：宁可截断不可爆上下文）
+
+workflow:
+  max_rounds: 12            # 整个流程图的最大节点执行次数（防死循环）
+  max_reflections: 1        # Critic 打回重做的最大次数
+
+server:
+  host: 127.0.0.1
+  port: 8000
+
+storage:
+  runs_dir: .runs           # 任务运行记录 / 检查点 / 事件流水

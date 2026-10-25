@@ -1,0 +1,9 @@
+{
+  "id": "PR-42",
+  "title": "优惠券服务：增加异常兜底与超时调整",
+  "description": "线上反馈优惠券接口偶发超时告警。本次变更：1) get_coupon 增加异常兜底，避免上游 5xx；2) 下游超时从 30s 调整为 3s，尽快失败。",
+  "author": "dev-zhang",
+  "base": "main",
+  "head": "pr-42",
+  "repo": "fixtures/repo"
+}
